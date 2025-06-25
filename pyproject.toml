@@ -1,0 +1,22 @@
+[build-system]
+requires = ["setuptools>=61.0"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "pypi-packager-mcp"
+version = "0.1.0"
+description = "Advanced MCP server for Python packaging"
+authors = [
+    {name = "Mayur Sonawane", email = "mayurs1690@gmail.com"}
+]
+dependencies = [
+    "fastmcp>=2.0.0",
+    "build",
+    "twine",
+    "ruff",
+    "pytest",
+    "pydantic"
+]
+
+[project.scripts]
+pypi-packager-mcp = "pypi_packager_mcp.server:main"
