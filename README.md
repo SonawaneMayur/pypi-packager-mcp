@@ -52,6 +52,10 @@ Use the `create_pypi_package` tool with parameters described below.
 ### Example Request
 { “source_path”: “/path/to/my_module”, “package_name”: “awesome_tool”, “version”: “1.0.0”, “pypi_token”: “pypi-AgENdGV…”, “repository”: “pypi”, “run_tests”: true, “lint_code”: true, “min_python”: “3.9” }
 
+## License
+
+This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.  
+For the full text of the MIT License, visit https://opensource.org/licenses/MIT [1].
 
 ---
 
