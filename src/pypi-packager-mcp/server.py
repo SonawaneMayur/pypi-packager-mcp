@@ -18,6 +18,7 @@ mcp_app = mcp.http_app(transport="streamable-http")  # or mcp.streamable_http_ap
 app = FastAPI(lifespan=mcp_app.lifespan)
 app.mount("/mcp", mcp_app)
 
+
 class PackageRequest(BaseModel):
     source_path: str = Field(..., description="Path to Python file or directory")
     package_name: str = Field(..., description="Name for PyPI package")
@@ -36,7 +37,6 @@ class PackageResponse(BaseModel):
     dist_files: List[str]
     errors: List[str] = []
     pypi_url: Optional[str] = None
-
 
 
 @mcp.tool()
@@ -98,12 +98,14 @@ def create_pypi_package(request: PackageRequest) -> PackageResponse:
         pypi_url=pypi_url
     )
 
+
 def get_build_directory(custom_dir: Optional[str] = None) -> str:
     """Return the directory to use for builds. Use custom_dir if provided and valid, else create a temp directory."""
     if custom_dir and os.path.isdir(custom_dir):
         return custom_dir
     else:
         return tempfile.mkdtemp()
+
 
 def setup_package_structure(tmpdir: str, request: PackageRequest) -> Path:
     """Create standard PyPI package structure"""
