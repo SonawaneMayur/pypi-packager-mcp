@@ -48,10 +48,23 @@ Use the `create_pypi_package` tool with parameters described below.
 | run_tests     | boolean  | No       | Run pytest on tests directory if present (default: `true`)                                  |
 | lint_code     | boolean  | No       | Run Ruff linter on source code (default: `true`)                                            |
 | min_python    | string   | No       | Minimum required Python version (default: `"3.8"`)                                          |
+|build_dir     | string   | No       | Custom directory for build artifacts. If not provided, a temporary directory is used.        | 
 
-### Example Request
-{ “source_path”: “/path/to/my_module”, “package_name”: “awesome_tool”, “version”: “1.0.0”, “pypi_token”: “pypi-AgENdGV…”, “repository”: “pypi”, “run_tests”: true, “lint_code”: true, “min_python”: “3.9” }
+### Example Request:
+{
+  "source_path": "/path/to/my_module",
+  "package_name": "awesome_tool",
+  "version": "1.0.0",
+  "pypi_token": "pypi-AgENdGV…",
+  "repository": "pypi",
+  "run_tests": true,
+  "lint_code": true,
+  "min_python": "3.9",
+  "build_dir": "/Users/yourname/mcp_builds"
+}
 
+Tip:
+If you want to keep the build artifacts after the tool finishes, set the build_dir parameter to a directory you control. If omitted, build files will be stored in a temporary directory and deleted after the process ends.
 ## License
 
 This project is licensed under the MIT License. See the [LICENSE](LICENSE) file for details.  

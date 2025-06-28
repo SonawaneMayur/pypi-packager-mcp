@@ -1,0 +1,6 @@
+Metadata-Version: 2.4
+Name: my_pkg
+Version: 0.1.0
+Summary: Auto-generated PyPI package via MCP
+Author-email: MCP Packager <mcp@example.com>
+Requires-Python: >=3.8

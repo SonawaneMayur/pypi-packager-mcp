@@ -1,3 +1,4 @@
+from fastapi import FastAPI
 from fastmcp import FastMCP
 from pydantic import BaseModel, Field
 import subprocess
@@ -9,8 +10,13 @@ from typing import List, Optional
 
 # Initialize FastMCP server
 mcp = FastMCP("Advanced PyPI Packager",
-              instructions="Converts Python code to production-ready PyPI packages")
+              instructions="Converts Python code to production-ready PyPI packages",
+              stateless_http=True)
+mcp_app = mcp.http_app(transport="streamable-http")  # or mcp.streamable_http_app()
 
+# Pass the FastMCP app's lifespan to FastAPI!
+app = FastAPI(lifespan=mcp_app.lifespan)
+app.mount("/mcp", mcp_app)
 
 class PackageRequest(BaseModel):
     source_path: str = Field(..., description="Path to Python file or directory")
@@ -21,6 +27,7 @@ class PackageRequest(BaseModel):
     run_tests: bool = Field(True, description="Run pytest if tests exist")
     lint_code: bool = Field(True, description="Run Ruff linter")
     min_python: str = Field("3.8", description="Minimum Python version")
+    build_dir: Optional[str] = Field(None, description="Directory to use for builds (optional)")
 
 
 class PackageResponse(BaseModel):
@@ -31,6 +38,7 @@ class PackageResponse(BaseModel):
     pypi_url: Optional[str] = None
 
 
+
 @mcp.tool()
 def create_pypi_package(request: PackageRequest) -> PackageResponse:
     """Converts Python code to PyPI package with quality checks and upload"""
@@ -38,49 +46,49 @@ def create_pypi_package(request: PackageRequest) -> PackageResponse:
     errors = []
     dist_files = []
     pypi_url = None
+    build_dir = get_build_directory(request.build_dir)
 
-    with tempfile.TemporaryDirectory() as tmpdir:
-        try:
-            # 1. Create package structure
-            build_log.append("📦 Creating package structure...")
-            package_dir = setup_package_structure(tmpdir, request)
+    try:
+        # 1. Create package structure
+        build_log.append("📦 Creating package structure...")
+        package_dir = setup_package_structure(build_dir, request)
 
-            # 2. Linting
-            if request.lint_code:
-                build_log.append("🔍 Running linter...")
-                lint_result = run_ruff_lint(package_dir)
-                build_log.extend(lint_result['logs'])
-                if lint_result['errors']:
-                    errors.extend(lint_result['errors'])
+        # 2. Linting
+        if request.lint_code:
+            build_log.append("🔍 Running linter...")
+            lint_result = run_ruff_lint(package_dir)
+            build_log.extend(lint_result['logs'])
+            if lint_result['errors']:
+                errors.extend(lint_result['errors'])
 
-            # 3. Testing
-            if request.run_tests:
-                build_log.append("🧪 Running tests...")
-                test_result = run_pytest(package_dir)
-                build_log.extend(test_result['logs'])
-                if test_result['errors']:
-                    errors.extend(test_result['errors'])
+        # 3. Testing
+        if request.run_tests:
+            build_log.append("🧪 Running tests...")
+            test_result = run_pytest(package_dir)
+            build_log.extend(test_result['logs'])
+            if test_result['errors']:
+                errors.extend(test_result['errors'])
 
-            # 4. Build package
-            build_log.append("🏗️ Building package...")
-            build_result = build_package(package_dir)
-            build_log.extend(build_result['logs'])
-            dist_files = build_result['dist_files']
+        # 4. Build package
+        build_log.append("🏗️ Building package...")
+        build_result = build_package(package_dir)
+        build_log.extend(build_result['logs'])
+        dist_files = build_result['dist_files']
 
-            # 5. Upload to PyPI
-            if request.pypi_token and not errors:
-                build_log.append("🚀 Uploading to PyPI...")
-                upload_result = upload_package(package_dir, request)
-                build_log.extend(upload_result['logs'])
-                pypi_url = upload_result.get('pypi_url')
-                if upload_result.get('errors'):
-                    errors.extend(upload_result['errors'])
+        # 5. Upload to PyPI
+        if request.pypi_token and not errors:
+            build_log.append("🚀 Uploading to PyPI...")
+            upload_result = upload_package(package_dir, request)
+            build_log.extend(upload_result['logs'])
+            pypi_url = upload_result.get('pypi_url')
+            if upload_result.get('errors'):
+                errors.extend(upload_result['errors'])
 
-            status = "success" if not errors else "partial_success"
+        status = "success" if not errors else "partial_success"
 
-        except Exception as e:
-            errors.append(f"Critical error: {str(e)}")
-            status = "error"
+    except Exception as e:
+        errors.append(f"Critical error: {str(e)}")
+        status = "error"
 
     return PackageResponse(
         status=status,
@@ -90,6 +98,12 @@ def create_pypi_package(request: PackageRequest) -> PackageResponse:
         pypi_url=pypi_url
     )
 
+def get_build_directory(custom_dir: Optional[str] = None) -> str:
+    """Return the directory to use for builds. Use custom_dir if provided and valid, else create a temp directory."""
+    if custom_dir and os.path.isdir(custom_dir):
+        return custom_dir
+    else:
+        return tempfile.mkdtemp()
 
 def setup_package_structure(tmpdir: str, request: PackageRequest) -> Path:
     """Create standard PyPI package structure"""
@@ -256,4 +270,5 @@ def upload_package(package_dir: Path, request: PackageRequest) -> dict:
 
 
 if __name__ == "__main__":
-    mcp.run(transport="stdio")
+    # mcp.run(transport="stdio")
+    mcp.run(transport="streamable-http")
